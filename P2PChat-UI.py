@@ -15,7 +15,16 @@ import socket
 # Global variables
 #
 
-
+server_address = sys.argv[1]
+server_port = int(sys.argv[2])
+my_port = int(sys.argv[3])
+my_socket = None
+try:
+	my_socket = socket.socket()
+	my_socket.connect((server_address, server_port))
+except socket.error as emsg:
+	print("Socket error: ", emsg)
+	sys.exit(1)
 
 #
 # This is the hash function for generating a unique
