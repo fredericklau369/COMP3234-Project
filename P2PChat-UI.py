@@ -15,7 +15,7 @@ from threading import Thread
 #
 # Global variables
 #
-joinedroom = False  # True if the user has join a chatroom
+room_joined = False  # True if the user has join a chatroom
 username = ""  # Store the registered username for joining the chatroom
 sockfd = socket.socket()  # Create a socket object for connection
 MSID = 0  # The hash value of all membership info
@@ -33,6 +33,7 @@ keep_alive_thd = None  # The keep alive thread
 # and str(Port) to form the input to this hash function
 #
 def sdbm_hash(instr):
+    """A hash function."""
     hash = 0
     for c in instr:
         hash = int(ord(c)) + (hash << 6) + (hash << 16) - hash
@@ -46,8 +47,7 @@ def sdbm_hash(instr):
 def do_User():
     """Register username."""
     global username
-    if not joinedroom:
-
+    if not room_joined:
         if len(userentry.get()) > 32:
             CmdWin.insert(
                 1.0, "\n[Remind]Username is too long, please register "
@@ -62,11 +62,11 @@ def do_User():
                 outstr = "\n[User] username: %s"
             username = userentry.get()
             CmdWin.insert(1.0, outstr % username)
+            clear_input()
     else:
         CmdWin.insert(1.0, "\n[Remind]Name cannot be changed "
                       "since you have joined a chatroom."
                       "\n[Remind]Your current username: " + username)
-    clear_input()
 
 
 def do_List():
@@ -90,8 +90,7 @@ def do_List():
 
 def do_Join():
     """Join a chatroom."""
-    global joinedroom, join_msg
-    if joinedroom:
+    if room_joined:
         CmdWin.insert(
             1.0, "\n[Remind]Failed. You have already joined a chatroom group.")
     elif username == '':
@@ -103,12 +102,14 @@ def do_Join():
             1.0, "\n[Remind]Please input the name of the room "
             "that you want to join")
     else:
+        global room_joined, join_msg
         roomname = userentry.get()
         userIP, userPort = sockfd.getsockname()
-        join_msg = "J:%s:%s:%s:%s::\r\n" %\
-            (roomname, username, userIP, str(userPort))
-        joinedroom = send_join_msg(roomname)
-    clear_input()
+        join_msg = "J:%s:%s:%s:%d::\r\n" %\
+            (roomname, username, userIP, userPort)
+        room_joined = send_join_msg(roomname)
+        if room_joined:
+            clear_input()
 
 
 def do_Send():
@@ -260,7 +261,7 @@ def main():
                 # checking whether main thread indicates termination
                 if quit_req:
                     return
-            if joinedroom:
+            if room_joined:
                 send_join_msg()
 
     keep_alive_thd = Thread(target=keep_alive)
