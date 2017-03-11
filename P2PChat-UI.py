@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 # Student name and No.: LAU Chun Lam (3035123851)
 # Student name and No.: LO Wnag Kin (3035186401)
 # Development platform: Ubuntu 14.04 LTS
@@ -90,6 +89,7 @@ def do_List():
 
 def do_Join():
     """Join a chatroom."""
+    global room_joined
     if room_joined:
         CmdWin.insert(
             1.0, "\n[Remind]Failed. You have already joined a chatroom group.")
@@ -102,7 +102,7 @@ def do_Join():
             1.0, "\n[Remind]Please input the name of the room "
             "that you want to join")
     else:
-        global room_joined, join_msg
+        global join_msg
         roomname = userentry.get()
         userIP, userPort = sockfd.getsockname()
         join_msg = "J:%s:%s:%s:%d::\r\n" %\
