@@ -148,7 +148,7 @@ def get_resp_list():
 
 def recv_err(err):
     """Handle an error received."""
-    print ("\nReceive error: " + err)
+    print ("\nReceive error: ", err)
 
 
 def send_join_msg(roomname=None):
@@ -164,8 +164,7 @@ def send_join_msg(roomname=None):
                 global MSID
                 MSID = resp_list[1]
                 CmdWin.insert(
-                    1.0, "\nYou have created a new chatroom [" +
-                    roomname + "]")
+                    1.0, "\nYou have created a new chatroom [%s]" % roomname)
 
             # a list to store the username, IP and port no. of members
             # in a chatroom
