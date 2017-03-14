@@ -74,7 +74,6 @@ def do_List():
     send_msg(list_msg)
     try:
         resp_list = get_resp_list()
-        # split the response message into a list of tokens
         if resp_list[0] == "G" and resp_list[1] == '':
             CmdWin.insert(1.0, "\nNo chatroom group")
         elif resp_list[0] == "F":
@@ -143,6 +142,7 @@ def get_resp_list():
     if len(rmsg) == 0:
         print("Connection is broken. Exiting")
         sys.exit(1)
+    # split the response message into a list of tokens
     return rmsg.split(':')
 
 
@@ -235,11 +235,10 @@ bottscroll.config(command=CmdWin.yview)
 
 def main():
     """Main function."""
-    global keep_alive_thd
-    sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     if len(sys.argv) != 4:
         print("P2PChat.py <server address> <server port no.> <my port no.>")
         sys.exit(2)
+    sockfd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_address = sys.argv[1]
     server_port_no = int(sys.argv[2])
     local_port_no = int(sys.argv[3])
@@ -263,6 +262,7 @@ def main():
             if room_joined:
                 send_join_msg()
 
+    global keep_alive_thd
     keep_alive_thd = Thread(target=keep_alive)
     keep_alive_thd.start()
     win.mainloop()
