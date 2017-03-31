@@ -102,13 +102,10 @@ class UserDict(dict):
     def itemsfrom(self, index):
         """A generator starting from the given index."""
         hid = self.sorted_hids[index]
-        yield (hid, self[hid])
-        gen = (x for x in self.sorted_hids)
-        while next(gen) != hid:
-            pass
-        for x in gen:
+        for x in self.sorted_hids:
+            if x < hid:
+                continue
             yield (x, self[x])
-        gen = (x for x in self.sorted_hids)
         for x in self.sorted_hids:
             if x == hid:
                 break
