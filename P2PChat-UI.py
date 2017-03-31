@@ -319,9 +319,9 @@ def get_resp_list(sock):
                 del users[hid] # Remove the user
             sock.close()
             return None
-    # split the response message into a list of tokens
         if rmsg[-2:] == '\r\n':
             break
+    # split the response message into a list of tokens
     rmsg = rmsg.split(':')
     if rmsg[0] == 'F':
         CmdWin.insert(1.0, "\n[Error]" + rmsg[1])
@@ -353,6 +353,8 @@ def setup_fwd_link():
             fwdsocket = socket.socket() # A socket to establish forward link
             fwdsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             fwdsocket.connect((usr['ip'], usr['port']))
+
+            #HandShaking starts
             send_msg(fwdsocket, handshake_msg)
             me['msgid'] += 1
             resp_list = get_resp_list(fwdsocket)
@@ -399,15 +401,14 @@ def update_users(arg):
     for i in range(0, len(resp_list), 3):
         a_usr = resp_list[i:i + 3] # username, address, port no.
         hash_id = sdbm_hash(''.join(a_usr))
-        a_usr[2] = int(a_usr[2]) # cast port no. to int
         if hash_id not in users:
             users[hash_id] = {
                 'name': a_usr[0], 'ip': a_usr[1],
                 'port': int(a_usr[2]), 'sock': None, 'msgid': 0}
 
-    buf = ['\nusername        userIP          userPort\n']
+    buf = ['\nusername        userIP          userPort']
     for usr in users.values():
-        buf.append('%-16s%-16s%-16d\n' % (usr['name'], usr['ip'], usr['port']))
+        buf.append('\n%-16s%-16s%-16d' % (usr['name'], usr['ip'], usr['port']))
     CmdWin.insert(1.0, ''.join(buf))
 
 
@@ -458,6 +459,7 @@ def peer_listener(sock, is_fwd_link=False):
             usr['sock'] = sock
             usr['msgid'] = int(resp_list[5])
         elif resp_list[0] == 'T':
+            # Incoming text message
             process_text_msg(resp_list)
 
 #
@@ -546,7 +548,10 @@ def main():
     def accept_tcp():
         """Accept TCP connections from peers."""
         while curr_state != State.TERMINATED:
-            conn, addr = p2psock.accept()
+            try:
+                conn, addr = p2psock.accept()
+            except socket.error:
+                return
             t = Thread(target=peer_listener, args=(conn,))
             t.daemon = True
             t.start()
@@ -559,6 +564,7 @@ def main():
                 if curr_state == State.TERMINATED:
                     return
                 elif curr_state == State.JOINED:
+                    # Joined but not connected to a peer
                     setup_fwd_link()
             if curr_state.has_joined():
                 update_users(sockfd)
