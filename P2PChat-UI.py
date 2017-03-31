@@ -272,7 +272,7 @@ def do_Send():
     text_msg = 'T:%s:%d:%s:%d:%d:%s::\r\n' %\
         (roomname, my_hid, me['name'], me['msgid'], len(text), text)
     process_text_msg(text_msg.split(':')) # Send to myself
-    msgId += 1
+    me['msgid'] += 1
     for usr in users.values():
         sock = usr['sock']
         if sock is not None:
