@@ -273,10 +273,6 @@ def do_Send():
         (roomname, my_hid, me['name'], me['msgid'], len(text), text)
     process_text_msg(text_msg.split(':')) # Send to myself
     me['msgid'] += 1
-    for usr in users.values():
-        sock = usr['sock']
-        if sock is not None:
-            send_msg(sock, text_msg)
 
 
 def do_Quit():
@@ -421,17 +417,18 @@ def update_users(arg):
 def process_text_msg(resp_list):
     """Parse and display text messages."""
     originHID = int(resp_list[2])
-    resp_msgId = int(resp_list[4])
+    resp_msgid = int(resp_list[4])
     if originHID not in users:
         update_users(sockfd)
-    if users[originHID]['msgid'] == resp_msgId: # Duplicated message
+    if (originHID != my_hid) and (users[originHID]['msgid'] == resp_msgid): # Duplicated message
         return
-    users[originHID]['msgid'] = resp_msgId
+    users[originHID]['msgid'] = resp_msgid
+    msg = ':'.join(resp_list)
     for hid, usr in users.items():
         if hid != originHID: # Send to all available connections
             sock = usr['sock']
             if sock is not None:
-                send_msg(sock, ':'.join(resp_list))
+                send_msg(sock, msg)
     # Display the message
     text = ':'.join(resp_list[6:-2])
     MsgWin.insert(1.0, '\n%s: %s' % (resp_list[3], text))
