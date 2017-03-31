@@ -49,7 +49,7 @@ class UserDict(dict):
     A sorted dictionary storing user data, using hash id as key.
 
     Values of each user is a list, consist of
-    username, IP, port no., socket object, and last message id.
+    name, ip, port, sock, and msgid.
     """
     def __init__(self):
         super(UserDict, self).__init__()
@@ -100,6 +100,7 @@ class UserDict(dict):
             yield (hid, self[hid])
 
     def itemsfrom(self, index):
+        """A generator starting from the given index."""
         hid = self.sorted_hids[index]
         yield (hid, self[hid])
         gen = (x for x in self.sorted_hids)
@@ -290,6 +291,12 @@ def do_Quit():
     sys.exit(0)
 
 
+def recv_err(err):
+    """Handle an error received."""
+    raise err
+    print ("\nReceive error: ", err)
+
+
 def clear_input():
     """Clear the input box."""
     userentry.delete(0, END)
@@ -357,7 +364,7 @@ def setup_fwd_link():
             me['msgid'] += 1
             resp_list = get_resp_list(fwdsocket)
 
-            if (not resp_list) | (resp_list[0] != 'S'):
+            if (not resp_list) or (resp_list[0] != 'S'):
                 fwdsocket.close()
                 continue
 
@@ -378,9 +385,8 @@ def setup_fwd_link():
         break
 
 
-
 def update_users(arg):
-    """Update the list of users by server response from join request."""
+    """Update the list of users."""
     if isinstance(arg, socket.socket):
         # arg is a socket, send join request first
         send_msg(arg, join_msg)
@@ -412,10 +418,23 @@ def update_users(arg):
     CmdWin.insert(1.0, ''.join(buf))
 
 
-def recv_err(err):
-    """Handle an error received."""
-    raise err
-    print ("\nReceive error: ", err)
+def process_text_msg(resp_list):
+    """Parse and display text messages."""
+    originHID = int(resp_list[2])
+    resp_msgId = int(resp_list[4])
+    if originHID not in users:
+        update_users(sockfd)
+    if users[originHID]['msgid'] == resp_msgId: # Duplicated message
+        return
+    users[originHID]['msgid'] = resp_msgId
+    for hid, usr in users.items():
+        if hid != originHID: # Send to all available connections
+            sock = usr['sock']
+            if sock is not None:
+                send_msg(sock, ':'.join(resp_list))
+    # Display the message
+    text = ':'.join(resp_list[6:-2])
+    MsgWin.insert(1.0, '\n%s: %s' % (resp_list[3], text))
 
 
 def peer_listener(sock, is_fwd_link=False):
@@ -446,27 +465,6 @@ def peer_listener(sock, is_fwd_link=False):
             usr['msgid'] = int(resp_list[5])
         elif resp_list[0] == 'T':
             process_text_msg(resp_list)
-
-
-def process_text_msg(resp_list):
-    """Parse and display text messages."""
-    originHID = int(resp_list[2])
-    resp_msgId = int(resp_list[4])
-    if originHID not in users:
-        update_users(sockfd)
-    if users[originHID]['msgid'] == resp_msgId: # Duplicated message
-        return
-    users[originHID]['msgid'] = resp_msgId
-    for hid, usr in users.items():
-        if hid != originHID: # Send to all available connections
-            sock = usr['sock']
-            if sock is not None:
-                send_msg(sock, ':'.join(resp_list))
-    # Display the message
-    text = ':'.join(resp_list[6:-2])
-    MsgWin.insert(1.0, '\n%s: %s' % (resp_list[3], text))
-
-
 
 #
 # Set up of Basic UI
@@ -552,19 +550,18 @@ def main():
 
 
     def accept_tcp():
-        # Accept TCP connections from peers
+        """Accept TCP connections from peers."""
         while curr_state != State.TERMINATED:
             conn, addr = p2psock.accept()
             t = Thread(target=peer_listener, args=(conn,))
             t.daemon = True
             t.start()
-            
-    
+
+
     def keep_alive():
         while curr_state != State.TERMINATED:
             for i in range(20):
                 sleep(1)
-                # checking whether main thread indicates termination
                 if curr_state == State.TERMINATED:
                     return
                 elif curr_state == State.JOINED:
