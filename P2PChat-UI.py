@@ -398,17 +398,23 @@ def update_users(arg):
 
     MSID = i
     resp_list = resp_list[2:-2]
+    user_hids = []
     for i in range(0, len(resp_list), 3):
         a_usr = resp_list[i:i + 3] # username, address, port no.
         hash_id = sdbm_hash(''.join(a_usr))
+        user_hids.append(hash_id)
         if hash_id not in users:
             users[hash_id] = {
                 'name': a_usr[0], 'ip': a_usr[1],
                 'port': int(a_usr[2]), 'sock': None, 'msgid': 0}
 
     buf = ['\nusername        userIP          userPort']
-    for usr in users.values():
-        buf.append('\n%-16s%-16s%-16d' % (usr['name'], usr['ip'], usr['port']))
+    for hid, usr in users.items():
+        if hid in user_hids:
+            buf.append('\n%-16s%-16s%-16d' % (usr['name'], usr['ip'], usr['port']))
+        else: # The user has leave the chatroom
+            del users[hid]
+
     CmdWin.insert(1.0, ''.join(buf))
 
 
